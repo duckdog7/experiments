@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> 
+    <meta charset="UTF-8">
+    <title>Small Business Helper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #viewer {
+            width: 100%;
+            height: 60vh;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            padding: 10px;
+            overflow: auto;
+        }
+        #controls {
+            margin-top: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Small Business Helper</h1>
+    <div id="controls">
+        <label for="fileInput">Upload your HTML template:</label>
+        <input type="file" id="fileInput" accept=".html">
+
+        <label for="businessInput">What service or product do you provide?</label>
+        <input type="text" id="businessInput" placeholder="e.g., Digital Marketing Services">
+
+        <label for="helpInput">Where do you most need help?</label>
+        <textarea id="helpInput" rows="4" placeholder="e.g., Increasing online visibility, managing finances"></textarea>
+
+        <button id="generateButton">Generate Customized Content</button>
+    </div>
+    <div id="viewer"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const businessInput = document.getElementById('businessInput');
+        const helpInput = document.getElementById('helpInput');
+        const generateButton = document.getElementById('generateButton');
+        const viewer = document.getElementById('viewer');
+
+        let originalContent = '';
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file && file.type === 'text/html') {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    originalContent = e.target.result;
+                    viewer.innerHTML = originalContent;
+                };
+                reader.readAsText(file);
+            } else {
+                alert('Please upload a valid HTML file.');
+            }
+        });
+
+        generateButton.addEventListener('click', async () => {
+            const business = businessInput.value.trim();
+            const help = helpInput.value.trim();
+
+            if (!business || !help) {
+                alert('Please fill in all fields.');
+                return;
+            }
+
+            const apiKey = 'YOUR_API_KEY'; // Replace with your OpenAI API key
+            const prompt = `You are a small business consultant provide help to ${business}. They are seeking assistance in ${help}, adapt the following HTML content to be engaging and relevant playbook that gives them the steps to support their needs:\n\n${originalContent}`;
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            { role: 'system', content: 'You are a helpful assistant specializing in web content adaptation for small businesses.' },
+                            { role: 'user', content: prompt }
+                        ],
+                        max_tokens: 2048,
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error.message);
+                }
+
+                const data = await response.json();
+                const newContent = data.choices[0].message.content.trim();
+                viewer.innerHTML = newContent;
+            } catch (error) {
+                console.error('Error generating content:', error);
+                alert('An error occurred while generating content. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>
